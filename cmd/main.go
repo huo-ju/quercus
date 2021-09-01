@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/huo-ju/quercus/pkg/pubsub"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -12,55 +12,6 @@ import (
 var (
 	signalch chan os.Signal
 )
-
-type Pubsub struct {
-	mu     sync.RWMutex
-	closed bool
-	subs   map[string][]chan string
-}
-
-func NewPubsub() *Pubsub {
-	ps := &Pubsub{}
-	ps.subs = make(map[string][]chan string)
-	return ps
-}
-
-func (ps *Pubsub) Subscribe(topic string) <-chan string {
-	ps.mu.Lock()
-	defer ps.mu.Unlock()
-
-	ch := make(chan string, 1)
-	ps.subs[topic] = append(ps.subs[topic], ch)
-	return ch
-}
-
-func (ps *Pubsub) Publish(topic string, msg string) {
-	ps.mu.RLock()
-	defer ps.mu.RUnlock()
-	if ps.closed {
-		return
-	}
-	for _, ch := range ps.subs[topic] {
-		go func(ch chan string) {
-			ch <- msg
-		}(ch)
-
-	}
-}
-
-func (ps *Pubsub) Close() {
-	ps.mu.Lock()
-	defer ps.mu.Unlock()
-
-	if !ps.closed {
-		ps.closed = true
-		for _, subs := range ps.subs {
-			for _, ch := range subs {
-				close(ch)
-			}
-		}
-	}
-}
 
 func qualityagent(input interface{}, agenttype int) interface{} {
 	time.Sleep(2 * time.Second)
@@ -79,7 +30,7 @@ func main() {
 	signalch = make(chan os.Signal, 1)
 	NodeNumber := 5
 
-	ps := NewPubsub()
+	ps := pubsub.NewPubsub()
 
 	listener := func(name string, ch <-chan string) {
 		for i := range ch {
