@@ -32,25 +32,25 @@ func main() {
 
 	ps := pubsub.NewPubsub()
 
-	listener := func(name string, ch <-chan string) {
-		for i := range ch {
-			fmt.Printf("[%s] got %s\n", name, i)
+	//ch <-chan interface{}
+	listener := func(topicname string, sub *pubsub.Subscriber) {
+		for i := range sub.Chan {
+			fmt.Printf("Node:(%s) [%s] got %s\n", sub.Id, topicname, i)
 		}
-		fmt.Printf("[%s] done\n", name)
+		fmt.Printf("Node:(%s) [%s] done\n", sub.Id, topicname)
 	}
 
 	for i := 1; i < NodeNumber+1; i++ {
-		//topicname := fmt.Sprintf("node-%d", i)
-		topicname := fmt.Sprintf("node-%d", 0)
-		ch := ps.Subscribe(topicname)
-		go listener(topicname, ch)
+		nodename := fmt.Sprintf("node-%d", i)
+		topicname := fmt.Sprintf("topic-%d", 0)
+		sub := ps.Subscribe(nodename, topicname)
+		go listener(topicname, sub)
 	}
 	for i := 1; i < NodeNumber+1; i++ {
 		//topicname := fmt.Sprintf("node-%d", i)
-		topicname := fmt.Sprintf("node-%d", 0)
+		topicname := fmt.Sprintf("topic-%d", 0)
 		msg := fmt.Sprintf("msg-%d", i)
 		ps.Publish(topicname, msg)
-
 	}
 
 	signal.Notify(signalch, os.Interrupt, os.Kill, syscall.SIGTERM)
