@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/huo-ju/quercus/pkg/pubsub"
 	"github.com/huo-ju/quercus/pkg/quality"
@@ -20,15 +21,19 @@ func main() {
 
 	ps := pubsub.NewPubsub()
 
-	listener := func(topicname string, sub *pubsub.Subscriber) {
-		dqa := quality.NewDelayQualityAgent(0, 10)
-		for i := range sub.Chan {
-			out := dqa.Pass(i)
-			if out != nil {
+	listener := func(topicname string, sub *pubsub.Subscription) {
+		dqa := quality.NewDelayQualityAgent(0, 5)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		for {
+			msg, err := sub.Next(ctx)
+			if err == nil {
+				out := dqa.Pass(msg)
 				fmt.Printf("Node:(%s) [%s] got %s\n", sub.Id, topicname, out)
+			} else {
+				fmt.Println(err)
 			}
 		}
-		fmt.Printf("Node:(%s) [%s] done\n", sub.Id, topicname)
 	}
 
 	for i := 1; i < NodeNumber+1; i++ {
