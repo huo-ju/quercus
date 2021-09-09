@@ -49,10 +49,8 @@ func NewPubsub() *Pubsub {
 func (ps *Pubsub) Subscribe(id string, topic string) *Subscription {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
-
 	sub := NewSubscription(id, topic)
 	ps.subs[topic] = append(ps.subs[topic], sub)
-	//return sub.Chan
 	return sub
 }
 
